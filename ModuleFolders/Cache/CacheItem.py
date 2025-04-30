@@ -129,6 +129,10 @@ class CacheItem():
         with self.lock:
             return self.storage_path
 
+    def get_id(self) -> str:
+        with self.lock:
+            return self.item_id
+
     # 设置文件路径
     def set_storage_path(self, storage_path: str) -> None:
         with self.lock:
@@ -141,3 +145,8 @@ class CacheItem():
                 CacheItem.cache[self.source_text] = len(tiktoken.get_encoding("cl100k_base").encode(self.source_text))
 
             return CacheItem.cache[self.source_text]
+        
+    def get_text(self) -> int:
+        with self.lock:
+            
+            return self.source_text

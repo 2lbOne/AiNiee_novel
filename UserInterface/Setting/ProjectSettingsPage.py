@@ -1,12 +1,15 @@
 from PyQt5.QtCore import QEvent
 from PyQt5.QtWidgets import QFrame
+from PyQt5.QtWidgets import QLayout
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QVBoxLayout
 from qfluentwidgets import FluentIcon
+from qfluentwidgets import FluentWindow
 
 from Base.Base import Base
 from Widget.ComboBoxCard import ComboBoxCard
 from Widget.PushButtonCard import PushButtonCard
+from Widget.SwitchButtonCard import SwitchButtonCard
 
 class ProjectSettingsPage(QFrame, Base):
 
@@ -22,10 +25,14 @@ class ProjectSettingsPage(QFrame, Base):
             "target_language": "chinese_simplified",
             "label_input_path": "./input",
             "label_output_path": "./output",
+            "EPUB_xhtml_segment": False,
+
         }
 
         # 载入并保存默认配置
         config = self.save_config(self.load_config_from_default())
+
+        self.EPUB_xhtml_segment = None
 
         # 设置主容器
         self.container = QVBoxLayout(self)
@@ -36,12 +43,22 @@ class ProjectSettingsPage(QFrame, Base):
         self.add_widget_01(self.container, config)
         self.add_widget_02(self.container, config)
         self.add_widget_03(self.container, config)
+        self.add_EPUB_xhtml_segment(self.container, config, window)
         self.add_widget_04(self.container, config)
         self.add_widget_05(self.container, config)
         self.add_widget_06(self.container, config)
 
         # 填充
         self.container.addStretch(1)
+
+        self.update_EPUB_xhtml_segment_visibility(config)
+
+    def update_EPUB_xhtml_segment_visibility(self, config):
+        if config["EPUB_xhtml_segment"]:
+            self.EPUB_xhtml_segment.show()
+        else:
+            self.EPUB_xhtml_segment.hide()
+            self.EPUB_xhtml_segment.set_checked(False)
 
     # 页面每次展示时触发
     def showEvent(self, event: QEvent) -> None:
@@ -185,7 +202,12 @@ class ProjectSettingsPage(QFrame, Base):
             
             config = self.load_config()
             config["translation_project"] = value
+            if value == "Epub":
+                self.EPUB_xhtml_segment.show()
+            else:
+                config["EPUB_xhtml_segment"] = False
             self.save_config(config)
+            self.update_EPUB_xhtml_segment_visibility(config)
 
         # 创建选项列表（使用翻译后的显示文本）
         options = [display for display, value in translated_pairs]
@@ -199,6 +221,26 @@ class ProjectSettingsPage(QFrame, Base):
                 current_text_changed=current_text_changed
             )
         )
+
+    def add_EPUB_xhtml_segment(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
+        def widget_init(widget) -> None:
+            widget.set_checked(config.get("EPUB_xhtml_segment"))
+
+        def widget_callback(widget, checked: bool) -> None:
+            config = self.load_config()
+            config["EPUB_xhtml_segment"] = checked
+            self.save_config(config)
+
+        
+        self.EPUB_xhtml_segment = SwitchButtonCard(
+                self.tra("优化 EPUB 任务划分"),
+                self.tra(
+                "启用此功能后，不同 xhtml 文件的文本将不会被划分到同一个翻译任务中"
+                ),
+                widget_init,
+                widget_callback,     
+        )
+        parent.addWidget(self.EPUB_xhtml_segment)
 
 
     # 原文语言

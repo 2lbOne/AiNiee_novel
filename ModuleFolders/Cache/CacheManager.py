@@ -156,7 +156,7 @@ class CacheManager(Base):
         )
 
     # 生成上文数据条目片段
-    def generate_previous_chunks(self, start_item: CacheItem, previous_line_count: int) -> list[CacheItem]:
+    def generate_previous_chunks(self, start_item: CacheItem, previous_type: str, previous_count: int, EPUB_xhtml_segment: bool) -> list[CacheItem]:
         result = []
 
         try:
@@ -164,34 +164,69 @@ class CacheManager(Base):
             start_index = self.items.index(start_item)
         except ValueError:
             return result
+        if previous_type == "line":
+            i = start_index - 1
+            while len(result) < previous_count and i >= 0:
+                item = self.items[i]
 
-        i = start_index - 1
-        while len(result) < previous_line_count and i >= 0:
-            item = self.items[i]
+                # 上文不应跨文件
+                if item.get_storage_path() != start_item.get_storage_path():
+                    break
+                if EPUB_xhtml_segment:
+                   if item.get_id() != start_item.get_id() :
+                       break
 
-            # 上文不应跨文件
-            if item.get_storage_path() != start_item.get_storage_path():
-                break
+                # 检查text_index是否连续递减
+                expected_text_index = start_item.get_text_index() - (len(result) + 1)
+                if item.get_text_index() > expected_text_index:
+                    break
+                if item.get_translation_status() == CacheItem.STATUS.EXCLUED: #添加上文时去除被排除行
+                    i -= 1
+                    continue
+                result.append(item)
+                i -= 1  # 继续向前搜索
+        elif previous_type == "token":
+            result_token=0
+            i = start_index - 1
+            while result_token < previous_count and i >= 0:
+                item = self.items[i]
 
-            # 检查text_index是否连续递减
-            expected_text_index = start_item.get_text_index() - (len(result) + 1)
-            if item.get_text_index() != expected_text_index:
-                break
+                # 上文不应跨文件
+                if item.get_storage_path() != start_item.get_storage_path():
+                    break
+                if EPUB_xhtml_segment:
+                   if item.get_id() != start_item.get_id() :
+                       break
 
-            result.append(item)
-            i -= 1  # 继续向前搜索
+                # 检查text_index是否连续递减
+                expected_text_index = start_item.get_text_index() - (len(result) + 1)
+                if item.get_text_index() > expected_text_index:
+                    break
+                if item.get_translation_status() == CacheItem.STATUS.EXCLUED: #添加上文时去除被排除行
+                    i -= 1
+                    continue
+                current_token = item.get_token_count()
+                result_token += current_token
+                result.append(item)
+                i -= 1  # 继续向前搜索
 
         # 反转列表，使顺序与原文一致
         result.reverse()
         return result
 
     # 开始生成缓存数据片段
-    def generate_item_chunks(self, limit_type: str, limit_count: int, previous_line_count: int) -> tuple[list[list[CacheItem]], list[list[CacheItem]]]:
+    def generate_item_chunks(self, limit_type: str, limit_count: int, previous_type: str, previous_count: int, Better_break = False, One_more_line = False) -> tuple[list[list[CacheItem]], list[list[CacheItem]]]:
         chunks = []
         previous_chunks = []
 
         chunk = []
         chunk_length = 0
+        
+
+        endtag = ['。','」','！','）'] #如果结尾字符不在列表内，下一行会被划分至当前chunk中
+        EPUB_xhtml_segment = self.load_config().get("EPUB_xhtml_segment")
+        end = True
+        xhtml_changed = False
 
         # 筛选未翻译的条目
         untranslated_items = [v for v in self.items if v.get_translation_status() == CacheItem.STATUS.UNTRANSLATED]
@@ -212,14 +247,26 @@ class CacheManager(Base):
                 exceed_primary = (chunk_length + current_length) > limit_count
                 # 检查存储路径是否改变
                 path_changed = item.get_storage_path() != chunk[-1].get_storage_path()
-
+                if EPUB_xhtml_segment:
+                    xhtml_changed = item.get_id() != chunk[-1].get_id()
+                    path_changed = path_changed or xhtml_changed
                 # 结束当前 chunk 的条件：超出主限制 或 路径改变
-                if exceed_primary or path_changed: 
+
+                if Better_break:
+                    end = chunk[-1].get_text()[-1] in endtag #匹配结尾字符
+                else:
+                    end=True
+
+                if end and exceed_primary or path_changed: 
                     chunks.append(chunk)
-                    previous_chunks.append(self.generate_previous_chunks(chunk[0], previous_line_count))
+                    previous_chunks.append(self.generate_previous_chunks(chunk[0], previous_type, previous_count, EPUB_xhtml_segment)) 
+                    if One_more_line:
+                        if not path_changed:
+                            chunk.append(item)
                     # 重置累计值
                     chunk = []
                     chunk_length = 0
+                        
 
             # 添加条目到当前chunk
             chunk.append(item)
@@ -228,7 +275,7 @@ class CacheManager(Base):
         # 处理循环结束后剩余的最后一个chunk
         if len(chunk) > 0:
             chunks.append(chunk)
-            previous_chunks.append(self.generate_previous_chunks(chunk[0], previous_line_count))
+            previous_chunks.append(self.generate_previous_chunks(chunk[0], previous_type, previous_count, EPUB_xhtml_segment))
 
         return chunks, previous_chunks
 

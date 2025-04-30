@@ -1,11 +1,13 @@
 from PyQt5.QtWidgets import QFrame
+from PyQt5.QtWidgets import QLayout
 from PyQt5.QtWidgets import QVBoxLayout
+from qfluentwidgets import FluentWindow
 
 from Base.Base import Base
 from Widget.SpinCard import SpinCard
 from Widget.Separator import Separator
 from Widget.ComboBoxCard import ComboBoxCard
-
+from Widget.SwitchButtonCard import SwitchButtonCard
 class BasicSettingsPage(QFrame, Base):
 
     def __init__(self, text: str, window) -> None:
@@ -16,9 +18,14 @@ class BasicSettingsPage(QFrame, Base):
         self.default = {
             "lines_limit_switch": False,
             "tokens_limit_switch": True,
+            "lines_prelimit_switch":True,
+            "lines_prelimit_switch":False,
             "lines_limit": 10,
             "tokens_limit": 384,
             "pre_line_counts": 0,
+            "pre_tokens_counts": 0,
+            "Better_break": False,
+            "One_more_line": False,
             "user_thread_counts": 0,
             "request_timeout": 120,
             "round_limit": 10,
@@ -36,20 +43,31 @@ class BasicSettingsPage(QFrame, Base):
         self.lines_limit_card = None
         self.tokens_limit_card = None
         self.mode_combo_box = None
+        self.premode_combo_box = None
+        self.prelines_limit_card = None
+        self.pretokens_limit_card = None
+        self.One_more_line = None
+        self.Better_break = None
+
 
         # 添加控件
         self.add_widget_01(self.vbox, config)
         self.add_widget_02(self.vbox, config)
         self.add_widget_03(self.vbox, config)
+        self.add_Better_break(self.vbox, config, window) #划分任务时更好的断句
+        self.add_One_more_line(self.vbox, config, window) #划分任务时添加一行下文
         self.vbox.addWidget(Separator())
         self.add_widget_04(self.vbox, config)
+        self.add_widget_05_mode(self.vbox, config) #划分上文模式
         self.add_widget_05(self.vbox, config)
+        self.add_widget_05_token(self.vbox, config) #上文token数
         self.vbox.addWidget(Separator())
         self.add_widget_request_timeout(self.vbox, config)
         self.add_widget_06(self.vbox, config)
 
         # 根据初始模式设置可见性
         self.update_limit_cards_visibility(config)
+        self.update_prelimit_cards_visibility(config)
 
         # 填充
         self.vbox.addStretch(1)
@@ -62,6 +80,15 @@ class BasicSettingsPage(QFrame, Base):
         else:
             self.lines_limit_card.hide()
             self.tokens_limit_card.show()
+
+    def update_prelimit_cards_visibility(self, config):
+        """根据当前模式更新限制卡片的可见性"""
+        if config["lines_prelimit_switch"]:
+            self.tokens_prelimit_card.hide()
+            self.lines_prelimit_card.show()
+        else:
+            self.lines_prelimit_card.hide()
+            self.tokens_prelimit_card.show()
 
     # 子任务切分模式
     def add_widget_01(self, parent, config) -> None:
@@ -160,6 +187,48 @@ class BasicSettingsPage(QFrame, Base):
         )
         parent.addWidget(self.tokens_limit_card)
 
+    #更好的断句
+    def add_Better_break(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
+        def widget_init(widget) -> None:
+            widget.set_checked(config.get("Better_break"))
+
+        def widget_callback(widget, checked: bool) -> None:
+            config = self.load_config()
+            config["Better_break"] = checked
+            self.save_config(config)
+
+        
+        self.Better_break = SwitchButtonCard(
+                self.tra("更好的断句"),
+                self.tra(
+                "启用此功能后，翻译任务会保留更完整的句子，可能会超过划分限制，从第 3 轮任务起，功能将自动关闭,请关闭再打开以重新激活功能"
+                ),
+                widget_init,
+                widget_callback,     
+        )
+        parent.addWidget(self.Better_break)
+    
+    #添加一行下文
+    def add_One_more_line(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
+        def widget_init(widget) -> None:
+            widget.set_checked(config.get("One_more_line"))
+
+        def widget_callback(widget, checked: bool) -> None:
+            config = self.load_config()
+            config["One_more_line"] = checked
+            self.save_config(config)
+
+        
+        self.One_more_line = SwitchButtonCard(
+                self.tra("添加一行下文"),
+                self.tra(
+                "启用此功能后，翻译任务中会多一行下文，将导致计数器显示异常，从第 2 轮任务起，功能将自动关闭,请关闭再打开以重新激活功能"
+                ),
+                widget_init,
+                widget_callback,     
+        )
+        parent.addWidget(self.One_more_line)
+
     # 同时执行的子任务数量
     def add_widget_04(self, parent, config) -> None:
         def init(widget) -> None:
@@ -180,6 +249,64 @@ class BasicSettingsPage(QFrame, Base):
             )
         )
 
+    def add_widget_05_mode(self, parent, config) -> None:
+        # 定义模式配对列表（显示文本, 存储值）
+        mode_pairs = [
+            (self.tra("行数模式"), "lines"),
+            (self.tra("Token模式"), "tokens")
+        ]
+        
+        # 生成翻译后的配对列表
+        translated_pairs = [(self.tra(display), value) for display, value in mode_pairs]
+
+        def init(widget) -> None:
+            """初始化时根据配置设置当前选项"""
+            current_config = self.load_config()
+            
+            # 根据配置确定当前模式值
+            if current_config.get("lines_prelimit_switch", False):
+                current_value = "lines"
+            else:
+                current_value = "tokens"
+                
+            # 通过存储值查找对应的索引
+            index = next(
+                (i for i, (_, value) in enumerate(translated_pairs) if value == current_value),
+                0  # 默认选择第一个选项
+            )
+            widget.set_current_index(max(0, index))
+
+        def current_text_changed(widget, text: str) -> None:
+            """选项变化时更新配置"""
+            # 通过显示文本查找对应的存储值
+            value = next(
+                (value for display, value in translated_pairs if display == text),
+                "lines"  # 默认值
+            )
+            
+            config = self.load_config()
+            if value == "lines":
+                config["lines_prelimit_switch"] = True
+                config["tokens_prelimit_switch"] = False
+            else:
+                config["lines_prelimit_switch"] = False
+                config["tokens_prelimit_switch"] = True
+                
+            self.save_config(config)
+            self.update_prelimit_cards_visibility(config)
+
+        # 创建选项列表（使用翻译后的显示文本）
+        options = [display for display, value in translated_pairs]
+
+        self.premode_combo_box = ComboBoxCard(
+            self.tra("上文切分模式"),
+            self.tra("选择上文切分的模式"),
+            options,
+            init=init,
+            current_text_changed=current_text_changed,
+        )
+        parent.addWidget(self.premode_combo_box)
+
     # 每个子任务携带的参考上文行数
     def add_widget_05(self, parent, config) -> None:
         def init(widget) -> None:
@@ -191,14 +318,34 @@ class BasicSettingsPage(QFrame, Base):
             config["pre_line_counts"] = value
             self.save_config(config)
 
-        parent.addWidget(
-            SpinCard(
-                self.tra("参考上文行数"),
-                self.tra("行数不宜设置过大，建议10行以内 (不支持本地类接口)"),
-                init = init,
-                value_changed = value_changed,
-            )
+        
+        self.lines_prelimit_card=SpinCard(
+            self.tra("参考上文行数"),
+            self.tra("行数不宜设置过大，建议10行以内 (不支持本地类接口，仅支持 Sakura Galtrans v3)"),
+            init = init,
+            value_changed = value_changed,
         )
+        parent.addWidget(self.lines_prelimit_card)
+
+    # 每个子任务携带的参考上文token数
+    def add_widget_05_token(self, parent, config) -> None:
+        def init(widget) -> None:
+            widget.set_range(0, 9999999)
+            widget.set_value(config.get("pre_tokens_counts"))
+
+        def value_changed(widget, value: int) -> None:
+            config = self.load_config()
+            config["pre_tokens_counts"] = value
+            self.save_config(config)
+
+        self.tokens_prelimit_card = SpinCard(
+            self.tra("参考上文 Token 数"),
+            self.tra("Token 不宜设置过大 (不支持本地类接口，仅支持 Sakura Galtrans v3)"),
+            init=init,
+            value_changed=value_changed,
+        )
+        parent.addWidget(self.tokens_prelimit_card)
+
 
     # 请求超时时间
     def add_widget_request_timeout(self, parent, config) -> None:

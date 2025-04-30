@@ -223,16 +223,32 @@ class Translator(Base):
                 self.project_status_data["total_line"] = item_count_status_untranslated
 
             # 第二轮开始对半切分
-            if current_round > 0:
+            if current_round >= 1:
                 self.config.lines_limit = max(1, int(self.config.lines_limit / 2))
                 self.config.tokens_limit = max(1, int(self.config.tokens_limit / 2))
+                self.config.pre_line_counts  = max(1, int(self.config.pre_line_counts / 2))
+                self.config.pre_tokens_counts  = max(1, int(self.config.pre_tokens_counts / 2))
+
+                self.config.One_more_line = False #第二轮将不再添加下一行作为输入，否则会修改已翻译文本
+
+
+            #第5轮开始不调整断句，防止相同错误输出任务被提交
+            if current_round == 4: 
+                if self.config.Better_break :
+                    self.config.Better_break = False
+            
+            if current_round >= 6:
+                self.config.pre_line_counts = 0
+                self.config.pre_tokens_counts = 0
 
 
             # 生成缓存数据条目片段的合集列表，原文列表与上文列表一一对应
             chunks, previous_chunks = self.cache_manager.generate_item_chunks(
                 "line" if self.config.tokens_limit_switch == False else "token",
                 self.config.lines_limit if self.config.tokens_limit_switch == False else self.config.tokens_limit,
-                self.config.pre_line_counts
+                "line" if self.config.tokens_prelimit_switch == False else "token",
+                self.config.pre_line_counts if self.config.tokens_prelimit_switch == False else self.config.pre_tokens_counts,
+                self.config.Better_break, self.config.One_more_line
             )
 
             # 生成翻译单元任务的合集列表

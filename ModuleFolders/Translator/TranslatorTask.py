@@ -421,15 +421,31 @@ class TranslatorTask(Base):
             if glossary != "":
                 extra_log.append(glossary)
 
+        previous = ""
+        if (self.config.pre_line_counts or self.config.pre_tokens_counts) and previous_text_list:
+            #formatted_rows = [item for item in previous_text_list]
+            previous=f"{"\n".join([item for item in previous_text_list])}\n"
+
 
         # 构建主要提示词
         if glossary == "":
-            user_prompt = "将下面的日文文本翻译成中文：\n" + "\n".join(source_text_dict.values())
+            if previous == "":
+                user_prompt = "将下面的日文文本翻译成中文：\n" + "\n".join(source_text_dict.values())
+            else:
+                user_prompt =previous+  "结合历史剧情和上下文，将下面的日文文本翻译成中文：\n" + "\n".join(source_text_dict.values())
+                extra_log.append(f"###上文\n{"\n".join(previous_text_list)}")
         else:
-            user_prompt = (
-                "根据以下术语表（可以为空）：\n" + glossary
-                + "\n" + "将下面的日文文本根据对应关系和备注翻译成中文：\n" + "\n".join(source_text_dict.values())
-            )
+            if previous == "":
+                user_prompt = (
+                    "参考以下术语表（可以为空）：\n" + glossary
+                    + "\n" + "将下面的日文文本根据对应关系和备注翻译成中文：\n" + "\n".join(source_text_dict.values())
+                )
+            else:
+                user_prompt = (previous + 
+                    "参考以下术语表（可以为空）：\n" + glossary
+                    + "\n" + "结合历史剧情和上下文，将下面的日文文本根据对应关系和备注翻译成中文：\n" + "\n".join(source_text_dict.values())
+                )
+                extra_log.append(f"###上文\n{"\n".join(previous_text_list)}")
 
         # 构建指令列表
         messages.append(
