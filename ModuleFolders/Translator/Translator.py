@@ -232,12 +232,12 @@ class Translator(Base):
                 self.config.One_more_line = False #第二轮将不再添加下一行作为输入，否则会修改已翻译文本
 
 
-            #第5轮开始不调整断句，防止相同错误输出任务被提交
-            if current_round == 4: 
+            #第n轮开始不调整断句，防止相同错误输出任务被提交
+            if current_round >= self.config.Better_break_limit: 
                 if self.config.Better_break :
                     self.config.Better_break = False
             
-            if current_round >= 6:
+            if current_round >= self.config.previous_limit:
                 self.config.pre_line_counts = 0
                 self.config.pre_tokens_counts = 0
 

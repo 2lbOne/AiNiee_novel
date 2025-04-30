@@ -23,12 +23,14 @@ class BasicSettingsPage(QFrame, Base):
             "lines_limit": 10,
             "tokens_limit": 384,
             "pre_line_counts": 0,
-            "pre_tokens_counts": 0,
+            "pre_tokens_counts": 256,
             "Better_break": False,
             "One_more_line": False,
             "user_thread_counts": 0,
             "request_timeout": 120,
             "round_limit": 10,
+            "Better_break_limit": 2,
+            "previous_limit": 4,
         }
 
         # 载入并保存默认配置
@@ -46,8 +48,10 @@ class BasicSettingsPage(QFrame, Base):
         self.premode_combo_box = None
         self.prelines_limit_card = None
         self.pretokens_limit_card = None
+        self.previous_limit = None
         self.One_more_line = None
         self.Better_break = None
+        self.Better_break_limit = None
 
 
         # 添加控件
@@ -55,12 +59,14 @@ class BasicSettingsPage(QFrame, Base):
         self.add_widget_02(self.vbox, config)
         self.add_widget_03(self.vbox, config)
         self.add_Better_break(self.vbox, config, window) #划分任务时更好的断句
+        self.add_Better_break_limit(self.vbox, config)
         self.add_One_more_line(self.vbox, config, window) #划分任务时添加一行下文
         self.vbox.addWidget(Separator())
         self.add_widget_04(self.vbox, config)
         self.add_widget_05_mode(self.vbox, config) #划分上文模式
         self.add_widget_05(self.vbox, config)
         self.add_widget_05_token(self.vbox, config) #上文token数
+        self.add_previous_limit(self.vbox, config)
         self.vbox.addWidget(Separator())
         self.add_widget_request_timeout(self.vbox, config)
         self.add_widget_06(self.vbox, config)
@@ -207,6 +213,26 @@ class BasicSettingsPage(QFrame, Base):
                 widget_callback,     
         )
         parent.addWidget(self.Better_break)
+
+        # 每个子任务携带的参考上文行数
+    def add_Better_break_limit(self, parent, config) -> None:
+        def init(widget) -> None:
+            widget.set_range(1, 9999999)
+            widget.set_value(config.get("Better_break_limit") + 1)
+
+        def value_changed(widget, value: int) -> None:
+            config = self.load_config()
+            config["Better_break_limit"] = value - 1
+            self.save_config(config)
+
+        
+        self.Better_break_limit=SpinCard(
+            self.tra("断句检测关闭时机"),
+            self.tra("指定轮数后将关闭断句检测"),
+            init = init,
+            value_changed = value_changed,
+        )
+        parent.addWidget(self.Better_break_limit)
     
     #添加一行下文
     def add_One_more_line(self, parent: QLayout, config: dict, window: FluentWindow) -> None:
@@ -345,6 +371,22 @@ class BasicSettingsPage(QFrame, Base):
             value_changed=value_changed,
         )
         parent.addWidget(self.tokens_prelimit_card)
+
+    def add_previous_limit(self, parent, config) -> None:
+        def init(widget) -> None:
+            widget.set_range(1, 9999999)
+            widget.set_value(config.get("previous_limit") + 1)
+        def value_changed(widget, value: int) -> None:
+            config = self.load_config()
+            config["previous_limit"] = value - 1
+            self.save_config(config)
+        self.previous_limit=SpinCard(
+            self.tra("参考上文关闭时机"),
+            self.tra("指定轮次后关闭上文输入"),
+            init = init,
+            value_changed = value_changed,
+        )
+        parent.addWidget(self.previous_limit)
 
 
     # 请求超时时间
