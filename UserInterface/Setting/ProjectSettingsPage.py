@@ -54,7 +54,7 @@ class ProjectSettingsPage(QFrame, Base):
         self.update_EPUB_xhtml_segment_visibility(config)
 
     def update_EPUB_xhtml_segment_visibility(self, config):
-        if config["EPUB_xhtml_segment"]:
+        if config["translation_project"] == "Epub":
             self.EPUB_xhtml_segment.show()
         else:
             self.EPUB_xhtml_segment.hide()
