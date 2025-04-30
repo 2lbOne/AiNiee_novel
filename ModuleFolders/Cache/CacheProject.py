@@ -1,87 +1,71 @@
-import time
-from dataclasses import dataclass, field
-from functools import cached_property
-from typing import Any
+import threading
 
-from ModuleFolders.Cache.BaseCache import ExtraMixin, ThreadSafeCache
-from ModuleFolders.Cache.CacheFile import CacheFile
+class CacheProject():
 
+    def __init__(self, args: dict) -> None:
+        super().__init__()
 
-class ProjectType:
-    AUTO_TYPE = "AutoType"
-    DOCX = "Docx"
-    EPUB = "Epub"
-    LRC = "Lrc"
-    MD = "Md"
-    MTOOL = "Mtool"
-    OFFICE_CONVERSION_PDF = "OfficeConversionPdf"
-    OFFICE_CONVERSION_DOC = "OfficeConversionDoc"
-    PARATRANZ = "Paratranz"
-    RENPY = "Renpy"
-    SRT = "Srt"
-    TPP = "Tpp"
-    TRANS = "Trans"
-    TXT = "Txt"
-    VNT = "Vnt"
-    VTT = "Vtt"
-    I18NEXT = "I18next"
+        # 默认值
+        self.project_id: str = ""
+        self.project_type: str = ""
+        self.data: dict = {}
 
+        # 初始化
+        for k, v in args.items():
+            setattr(self, k, v)
 
-@dataclass(repr=False)
-class CacheProjectStatistics(ThreadSafeCache):
-    total_requests: int = 0
-    error_requests: int = 0
-    start_time: float = field(default_factory=time.time)
-    total_line: int = 0
-    line: int = 0
-    token: int = 0
-    total_completion_tokens: int = 0
-    time: float = 0.0
+        # 线程锁
+        self.lock = threading.Lock()
 
+    def __repr__(self) -> str:
+        return (
+            f"{type(self).__name__}({self.get_vars()})"
+        )
 
-@dataclass(repr=False)
-class CacheProject(ThreadSafeCache, ExtraMixin):
-    project_id: str = ''
-    project_type: str = ''
-    stats_data: CacheProjectStatistics = None
-    files: dict[str, CacheFile] = field(default_factory=dict)
-    detected_encoding: str = "utf-8"
-    detected_line_ending: str = "\n"
-    extra: dict[str, Any] = field(default_factory=dict)
+    def get_vars(self) -> dict:
+        return {
+            k:v
+            for k, v in vars(self).items()
+            if isinstance(v, (int, str, bool, float, list, dict, tuple))
+        }
 
-    # 添加文件
-    def add_file(self, file: CacheFile) -> None:
-        """线程安全添加文件"""
-        with self._lock:
-            if hasattr(self, "file_project_types"):
-                del self.file_project_types  # 清除缓存
-            self.files[file.storage_path] = file
+    # 获取项目 ID
+    def get_project_id(self) -> str:
+        with self.lock:
+            return self.project_id
 
-    # 根据相对路径获取文件
-    def get_file(self, storage_path: str) -> CacheFile:
-        """线程安全获取文件"""
-        with self._lock:
-            return self.files.get(storage_path)
+    # 设置项目 ID
+    def set_project_id(self, project_id: str) -> None:
+        with self.lock:
+            self.project_id = project_id
 
-    def items_iter(self, project_types: str | frozenset[str] = None):
-        if isinstance(project_types, str):
-            project_types = frozenset([project_types])
-        with self._lock:
-            for file in self.files.values():
-                if project_types is None or file.file_project_type in project_types:
-                    for item in file.items:
-                        yield item
+    # 获取项目类型
+    def get_project_type(self) -> str:
+        with self.lock:
+            return self.project_type
 
-    def count_items(self, status=None):
-        with self._lock:
-            if status is None:
-                return sum(len(file.items) for file in self.files.values())
-            else:
-                return sum(
-                    1 for item in self.items_iter() if item.translation_status == status
-                )
+    # 设置项目类型
+    def set_project_type(self, project_type: str) -> None:
+        with self.lock:
+            self.project_type = project_type
 
-    @cached_property
-    def file_project_types(self) -> frozenset[str]:
-        with self._lock:
-            return frozenset(file.file_project_type for file in self.files.values())
+    # 获取翻译状态
+    def get_translation_status(self) -> int:
+        with self.lock:
+            return self.translation_status
+
+    # 设置翻译状态
+    def set_translation_status(self, translation_status: int) -> None:
+        with self.lock:
+            self.translation_status = translation_status
+
+    # 获取数据
+    def get_data(self) -> dict:
+        with self.lock:
+            return self.data
+
+    # 设置数据
+    def set_data(self, data: dict) -> None:
+        with self.lock:
+            self.data = data
+

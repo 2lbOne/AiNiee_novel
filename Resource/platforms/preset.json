@@ -7,7 +7,6 @@
             "api_url": "http://127.0.0.1:8080",
             "api_key": "",
             "api_format": "OpenAI",
-            "icon": "sakura",
             "rpm_limit": 2000,
             "tpm_limit": 100000000,
             "model": "Sakura-v1.0",
@@ -22,8 +21,6 @@
             "key_in_settings": [
                 "api_url",
                 "model",
-                "rpm_limit",
-                "tpm_limit",
                 "top_p",
                 "temperature",
                 "frequency_penalty"
@@ -36,7 +33,6 @@
             "api_url": "http://127.0.0.1:8080",
             "api_key": "",
             "api_format": "OpenAI",
-            "icon": "LocalLLM",
             "rpm_limit": 2000,
             "tpm_limit": 100000000,
             "model": "Qwen2.5-7B",
@@ -51,8 +47,6 @@
             "key_in_settings": [
                 "api_url",
                 "model",
-                "rpm_limit",
-                "tpm_limit",
                 "top_p",
                 "temperature",
                 "frequency_penalty"
@@ -65,7 +59,6 @@
             "api_url": "https://api.cohere.com",
             "api_key": "",
             "api_format": "Cohere",
-            "icon": "cohere",
             "rpm_limit": 10,
             "tpm_limit": 9999999,
             "model": "command-r-plus",
@@ -84,8 +77,6 @@
             "key_in_settings": [
                 "api_key",
                 "model",
-                "rpm_limit",
-                "tpm_limit",
                 "temperature",
                 "top_p",
                 "presence_penalty",
@@ -99,7 +90,6 @@
             "api_url": "",
             "api_key": "",
             "api_format": "Google",
-            "icon": "google",
             "rpm_limit": 15,
             "tpm_limit": 320000,
             "model": "gemini-1.5-flash",
@@ -118,8 +108,6 @@
             "key_in_settings": [
                 "api_key",
                 "model",
-                "rpm_limit",
-                "tpm_limit",
                 "temperature",
                 "top_p"
             ]
@@ -131,7 +119,6 @@
             "api_url": "https://api.openai.com/v1",
             "api_key": "",
             "api_format": "OpenAI",
-            "icon": "openai",
             "rpm_limit": 3500,
             "tpm_limit": 600000,
             "model": "gpt-3.5-turbo",
@@ -139,6 +126,7 @@
             "temperature": 1.0,
             "presence_penalty": 0.0,
             "frequency_penalty": 0.0,
+
             "auto_complete": false,
             "model_datas": [
                 "gpt-3.5-turbo",
@@ -150,8 +138,6 @@
             "key_in_settings": [
                 "api_key",
                 "model",
-                "rpm_limit",
-                "tpm_limit",
                 "top_p",
                 "temperature",
                 "presence_penalty",
@@ -165,7 +151,6 @@
             "api_url": "https://api.deepseek.com/v1",
             "api_key": "",
             "api_format": "OpenAI",
-            "icon": "deepseek",
             "rpm_limit": 4096,
             "tpm_limit": 10000000,
             "model": "deepseek-chat",
@@ -181,8 +166,6 @@
             "key_in_settings": [
                 "api_key",
                 "model",
-                "rpm_limit",
-                "tpm_limit",
                 "top_p",
                 "temperature",
                 "presence_penalty",
@@ -196,7 +179,6 @@
             "api_url": "https://api.anthropic.com",
             "api_key": "",
             "api_format": "Anthropic",
-            "icon": "anthropic",
             "rpm_limit": 2000,
             "tpm_limit": 100000000,
             "model": "claude-3-haiku",
@@ -215,8 +197,6 @@
             "key_in_settings": [
                 "api_key",
                 "model",
-                "rpm_limit",
-                "tpm_limit",
                 "temperature",
                 "top_p"
             ]
@@ -231,7 +211,6 @@
             "api_key": "",
             "api_url": "",
             "api_format": "Amazon Bedrock",
-            "icon": "amazonbedrock",
             "rpm_limit": 2000,
             "tpm_limit": 100000000,
             "model": "claude-3-haiku",
@@ -262,40 +241,8 @@
                 "access_key",
                 "secret_key",
                 "model",
-                "rpm_limit",
-                "tpm_limit",
                 "temperature",
                 "top_p"
-            ]
-        },
-        "xai": {
-            "tag": "xAI",
-            "group": "online",
-            "name": "xAI",
-            "api_url": "https://api.x.ai/v1",
-            "api_key": "",
-            "api_format": "OpenAI",
-            "icon": "xai",
-            "rpm_limit": 600,
-            "tpm_limit": 1000000,
-            "model": "grok-3-fast-beta",
-            "top_p": 1.0,
-            "temperature": 1.0,
-            "presence_penalty": 0.0,
-            "frequency_penalty": 0.0,
-            "auto_complete": false,
-            "model_datas": [
-                "grok-3-fast-beta",
-                "grok-3-mini-beta",
-                "grok-3-beta"
-            ],
-            "key_in_settings": [
-                "api_key",
-                "model",
-                "rpm_limit",
-                "tpm_limit",
-                "top_p",
-                "temperature"
             ]
         },
         "volcengine": {
@@ -305,7 +252,6 @@
             "api_url": "https://ark.cn-beijing.volces.com/api/v3",
             "api_key": "",
             "api_format": "OpenAI",
-            "icon": "volcengine",
             "rpm_limit": 10000,
             "tpm_limit": 8000000,
             "model": "doubao-1-5-pro-32k-250115",
@@ -316,15 +262,12 @@
             "auto_complete": false,
             "model_datas": [
                 "doubao-1-5-pro-32k-250115",
-                "doubao-1-5-thinking-pro-250415",
                 "deepseek-v3-250324",
                 "deepseek-r1-250120"
             ],
             "key_in_settings": [
                 "api_key",
                 "model",
-                "rpm_limit",
-                "tpm_limit",
                 "top_p",
                 "temperature",
                 "presence_penalty",
@@ -338,7 +281,6 @@
             "api_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
             "api_key": "",
             "api_format": "OpenAI",
-            "icon": "dashscope",
             "rpm_limit": 150,
             "tpm_limit": 1500000,
             "model": "qwen-turbo",
@@ -356,8 +298,6 @@
             "key_in_settings": [
                 "api_key",
                 "model",
-                "rpm_limit",
-                "tpm_limit",
                 "top_p",
                 "temperature",
                 "presence_penalty",
@@ -371,7 +311,6 @@
             "api_url": "https://open.bigmodel.cn/api/paas/v4",
             "api_key": "",
             "api_format": "OpenAI",
-            "icon": "zhipu",
             "rpm_limit": 30,
             "tpm_limit": 100000,
             "model": "glm-4-flash",
@@ -390,8 +329,6 @@
             "key_in_settings": [
                 "api_key",
                 "model",
-                "rpm_limit",
-                "tpm_limit",
                 "top_p",
                 "temperature",
                 "presence_penalty",
@@ -405,7 +342,6 @@
             "api_url": "https://api.lingyiwanwu.com/v1",
             "api_key": "",
             "api_format": "OpenAI",
-            "icon": "yi",
             "rpm_limit": 10,
             "tpm_limit": 120000,
             "model": "yi-lightning",
@@ -421,8 +357,6 @@
             "key_in_settings": [
                 "api_key",
                 "model",
-                "rpm_limit",
-                "tpm_limit",
                 "top_p",
                 "temperature",
                 "presence_penalty",
@@ -436,7 +370,6 @@
             "api_url": "https://api.moonshot.cn/v1",
             "api_key": "",
             "api_format": "OpenAI",
-            "icon": "moonshot",
             "rpm_limit": 3,
             "tpm_limit": 32000,
             "model": "moonshot-v1-8k",
@@ -453,8 +386,6 @@
             "key_in_settings": [
                 "api_key",
                 "model",
-                "rpm_limit",
-                "tpm_limit",
                 "top_p",
                 "temperature",
                 "presence_penalty",

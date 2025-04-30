@@ -1,13 +1,11 @@
 import json
 from pathlib import Path
 
-from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import CacheItem
-from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
-    PreReadMetadata
+    text_to_cache_item
 )
 
 
@@ -17,13 +15,13 @@ class TransReader(BaseSourceReader):
 
     @classmethod
     def get_project_type(cls):
-        return ProjectType.TRANS
+        return "Trans"
 
     @property
     def support_file(self):
         return "trans"
 
-    def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
+    def read_source_file(self, file_path: Path) -> list[CacheItem]:
         trans_content = json.loads(file_path.read_text(encoding="utf-8"))
 
         files_data = trans_content["project"]["files"]
@@ -63,25 +61,19 @@ class TransReader(BaseSourceReader):
                 rowInfoText = None
                 if idx < len(parameters_list):
                     parameters = parameters_list[idx]
-                    if parameters and len(parameters) > 0 and isinstance(parameters[0], dict):  # 有些人名信息并没有以字典存储
+                    if parameters and len(parameters) > 0 and isinstance(parameters[0], dict): # 有些人名信息并没有以字典存储
                         rowInfoText = parameters[0].get("rowInfoText", "")  # 可能为 具体人名 或类似 "\\v[263]" 的字符串
 
-                extra = {
-                    "tags": tags,
-                    "file_category": file_category,
-                    "data_index": idx,
-                }
-                item = CacheItem(
-                    source_text=source_text,
-                    translated_text=translated_text,
-                    translation_status=translation_status,
-                    extra=extra
-                )
+                item = text_to_cache_item(source_text, translated_text)
+                item.set_translation_status(translation_status) # 更新翻译状态
+                item.tags = tags
+                item.file_category = file_category
+                item.data_index = idx
                 if rowInfoText:
-                    item.source_text = self.combine_srt(rowInfoText, source_text)
-                    item.set_extra("name", rowInfoText)
+                    item.set_source_text(self.combine_srt(rowInfoText, source_text))
+                    item.name = rowInfoText
                 items.append(item)
-        return CacheFile(items=items)
+        return items
 
     def combine_srt(self, name, text):
         return f"[{name}]{text}"

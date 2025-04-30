@@ -1,13 +1,11 @@
 import json
 from pathlib import Path
 
-from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import CacheItem
-from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
-    PreReadMetadata
+    text_to_cache_item
 )
 
 
@@ -18,27 +16,19 @@ class MToolReader(BaseSourceReader):
 
     @classmethod
     def get_project_type(cls):
-        return ProjectType.MTOOL
+        return "Mtool"
 
     @property
     def support_file(self):
         return "json"
 
-    def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
+    def read_source_file(self, file_path: Path) -> list[CacheItem]:
         items = []
-        json_data = json.loads(file_path.read_text(encoding=pre_read_metadata.encoding))
+        json_data = json.loads(file_path.read_text(encoding='utf-8'))
 
         # 提取键值对
         for key, value in json_data.items():
             # 根据 JSON 文件内容的数据结构，获取相应字段值
-            item = CacheItem(source_text=key, translated_text=value)
+            item = text_to_cache_item(key, value)
             items.append(item)
-        return CacheFile(items=items)
-
-    def can_read_by_content(self, file_path: Path) -> bool:
-        # {"source_text1": "source_text1?", "source_text2": "source_text2?"}
-        # 即使不是对应编码也不影key value的形式
-        content = json.loads(file_path.read_text(encoding="utf-8", errors='ignore'))
-        if not isinstance(content, dict):
-            return False
-        return all(isinstance(k, str) and isinstance(v, str) for k, v in content.items())
+        return items

@@ -1,37 +1,35 @@
 from pathlib import Path
 
-from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import CacheItem
-from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileAccessor.DocxAccessor import DocxAccessor
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
-    PreReadMetadata
+    text_to_cache_item
 )
 
 
 class DocxReader(BaseSourceReader):
-    def __init__(self, input_config: InputConfig):
+    def __init__(self, input_config: InputConfig, file_accessor: DocxAccessor):
         super().__init__(input_config)
-        self.file_accessor = DocxAccessor()
+        self.file_accessor = file_accessor
 
     @classmethod
     def get_project_type(cls):
-        return ProjectType.DOCX
+        return 'Docx'
 
     @property
     def support_file(self):
         return 'docx'
 
-    def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
+    def read_source_file(self, file_path: Path) -> list[CacheItem]:
         xml_soup = self.file_accessor.read_content(file_path)
         paragraphs = xml_soup.find_all('w:t')
         self.file_accessor.clear_temp(file_path)
         # 过滤掉空的内容
         filtered_matches = (match.string for match in paragraphs if isinstance(match.string, str) and match.string.strip())
         items = [
-            CacheItem(source_text=text) for text in filtered_matches
+            text_to_cache_item(text) for text in filtered_matches
             if not (text == "" or text == "\n" or text == " " or text == '\xa0')
         ]
-        return CacheFile(items=items)
+        return items

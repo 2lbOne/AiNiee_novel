@@ -35,21 +35,10 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
 
 from Base.PluginManager import PluginManager
-from ModuleFolders.FileOutputer.FileOutputer import FileOutputer
-from ModuleFolders.FileReader.FileReader import FileReader
 from ModuleFolders.Translator.Translator import Translator
 from ModuleFolders.RequestTester.RequestTester import RequestTester
 from ModuleFolders.RequestTester.ProcessTester import ProcessTester
 from UserInterface.AppFluentWindow import AppFluentWindow
-
-def display_banner():
-    print(" █████   ██  ███    ██  ██  ███████  ███████ ")
-    print("██   ██  ██  ████   ██  ██  ██       ██      ")
-    print("███████  ██  ██ ██  ██  ██  █████    █████   ")
-    print("██   ██  ██  ██  ██ ██  ██  ██       ██      ")
-    print("██   ██  ██  ██   ████  ██  ███████  ███████ ")
-    print("                                        ")
-    print("                                        ")
 
 # 载入配置文件
 def load_config() -> dict:
@@ -74,16 +63,12 @@ if __name__ == "__main__":
     # 设置工作目录
     script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     sys.path.append(script_dir)
-    display_banner()
     print(f"[[green]INFO[/]] Current working directory is {script_dir}")
 
     # 创建全局插件管理器
     plugin_manager = PluginManager()
     plugin_path = os.path.join(".", "PluginScripts")
     plugin_manager.load_plugins_from_directory(plugin_path)
-
-    file_reader = FileReader()
-    file_writer = FileOutputer()
 
     # 载入配置文件
     config = load_config()
@@ -111,9 +96,8 @@ if __name__ == "__main__":
 
     # 创建全局窗口对象
     app_fluent_window = AppFluentWindow(
-        version = "AiNiee6.3 dev",
+        version = "AiNiee6.2.3",
         plugin_manager = plugin_manager,
-        support_project_types=file_reader.get_support_project_types(),
     )
 
     # 创建全局接口测试器对象，并初始化订阅事件
@@ -123,9 +107,7 @@ if __name__ == "__main__":
     process_tester = ProcessTester()
 
     # 创建翻译器对象，并初始化订阅事件
-    translator = Translator(
-        plugin_manager = plugin_manager, file_reader=file_reader, file_writer=file_writer
-    )
+    translator = Translator(plugin_manager = plugin_manager)
 
     # 显示全局窗口
     app_fluent_window.show()

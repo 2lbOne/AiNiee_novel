@@ -3,25 +3,23 @@ from pathlib import Path
 
 from bs4 import BeautifulSoup
 
-from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import CacheItem
-from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileAccessor.EpubAccessor import EpubAccessor
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
-    PreReadMetadata
+    text_to_cache_item
 )
 
 
 class EpubReader(BaseSourceReader):
-    def __init__(self, input_config: InputConfig):
+    def __init__(self, input_config: InputConfig, file_accessor: EpubAccessor):
         super().__init__(input_config)
-        self.file_accessor = EpubAccessor()
+        self.file_accessor = file_accessor
 
     @classmethod
     def get_project_type(cls):
-        return ProjectType.EPUB
+        return "Epub"
 
     @property
     def support_file(self):
@@ -40,7 +38,7 @@ class EpubReader(BaseSourceReader):
         ("div", r"<div[^>]*>(.*?)</div>", ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'text']),
     ]
 
-    def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
+    def read_source_file(self, file_path: Path) -> list[CacheItem]:
 
         items = []
         for item_id, html_content in self.file_accessor.read_content(file_path).items():
@@ -61,11 +59,11 @@ class EpubReader(BaseSourceReader):
                         forbidden_soup_elemnt = soup.find(forbidden_tags)
                         if forbidden_soup_elemnt is not None:
                             continue
-                    extra = {
-                        "original_html": html_text,
-                        "tag_type": tag_type,
-                        "item_id": item_id,
-                    }
-                    items.append(CacheItem(source_text=text_content, extra=extra))
+
+                    item = text_to_cache_item(text_content)
+                    item.original_html = html_text
+                    item.tag_type = tag_type  # 直接使用循环的 tag_type
+                    item.item_id = item_id
+                    items.append(item)
         self.file_accessor.clear_temp(file_path)
-        return CacheFile(items=items)
+        return items

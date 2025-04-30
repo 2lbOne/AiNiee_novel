@@ -5,62 +5,54 @@ from typing import Callable
 
 from bs4 import BeautifulSoup
 
-from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import CacheItem
-from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileAccessor.EpubAccessor import EpubAccessor
 from ModuleFolders.FileOutputer.BaseWriter import (
     BaseBilingualWriter,
     BaseTranslatedWriter,
-    OutputConfig,
-    PreWriteMetadata
+    OutputConfig
 )
 
 
 class EpubWriter(BaseBilingualWriter, BaseTranslatedWriter):
-    def __init__(self, output_config: OutputConfig):
+    def __init__(self, output_config: OutputConfig, file_accessor: EpubAccessor):
         super().__init__(output_config)
-        self.file_accessor = EpubAccessor()
+        self.file_accessor = file_accessor
 
-    def on_write_bilingual(
-        self, translation_file_path: Path, cache_file: CacheFile,
-        pre_write_metadata: PreWriteMetadata,
-        source_file_path: Path = None,
+    def write_bilingual_file(
+        self, translation_file_path: Path, items: list[CacheItem],
+        source_file_path: Path = None
     ):
         self._write_translation_file(
-            translation_file_path, cache_file,
+            translation_file_path, items,
             source_file_path, self._rebuild_bilingual_tag
         )
 
-    def on_write_translated(
-        self, translation_file_path: Path, cache_file: CacheFile,
-        pre_write_metadata: PreWriteMetadata,
-        source_file_path: Path = None,
+    def write_translated_file(
+        self, translation_file_path: Path, items: list[CacheItem],
+        source_file_path: Path = None
     ):
         self._write_translation_file(
-            translation_file_path, cache_file,
+            translation_file_path, items,
             source_file_path, self._rebuild_translated_tag
         )
 
     def _write_translation_file(
-        self, translation_file_path: Path, cache_file: CacheFile,
+        self, translation_file_path: Path, items: list[CacheItem],
         source_file_path: Path, translate_html_tag: Callable[[str, str], str]
     ):
         temp_root = self.file_accessor.temp_path_of(source_file_path)
         content = self.file_accessor.read_content(source_file_path, temp_root)
 
         # groupby需要key有序，item_id本身有序，不需要重排
-        translated_item_dict = {
-            k: list(v)
-            for k, v in groupby(cache_file.items, key=lambda x: x.require_extra("item_id"))
-        }
+        translated_item_dict = {k: list(v) for k, v in groupby(items, key=lambda x: x.item_id)}
         for item_id, html_content in content.items():
             if item_id not in translated_item_dict:
                 continue
             for item in translated_item_dict[item_id]:
-                if item.translation_status == CacheItem.STATUS.TRANSLATED:
-                    original_html = item.require_extra("original_html")
-                    translated_text = item.translated_text
+                if item.get_translation_status() == CacheItem.STATUS.TRANSLATED:
+                    original_html = item.original_html
+                    translated_text = item.get_translated_text()
                     new_html = translate_html_tag(original_html, translated_text)
                     html_content = html_content.replace(original_html, new_html, 1)
             content[item_id] = html_content
@@ -283,4 +275,4 @@ class EpubWriter(BaseBilingualWriter, BaseTranslatedWriter):
 
     @classmethod
     def get_project_type(self):
-        return ProjectType.EPUB
+        return "Epub"

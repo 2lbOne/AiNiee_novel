@@ -1,13 +1,10 @@
 import json
 from pathlib import Path
 
-from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import CacheItem
-from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileOutputer.BaseWriter import (
     BaseTranslatedWriter,
-    OutputConfig,
-    PreWriteMetadata
+    OutputConfig
 )
 
 
@@ -15,23 +12,22 @@ class MToolWriter(BaseTranslatedWriter):
     def __init__(self, output_config: OutputConfig):
         super().__init__(output_config)
 
-    def on_write_translated(
-        self, translation_file_path: Path, cache_file: CacheFile,
-        pre_write_metadata: PreWriteMetadata,
+    def write_translated_file(
+        self, translation_file_path: Path, items: list[CacheItem],
         source_file_path: Path = None,
     ):
         output_dict = {}
-        for item in cache_file.items:
+        for item in items:
             # 如果这个本已经翻译了，存放对应的文件中
-            if item.translation_status == CacheItem.STATUS.TRANSLATED:
-                output_dict[item.source_text] = item.translated_text
+            if item.get_translation_status() == CacheItem.STATUS.TRANSLATED:
+                output_dict[item.get_source_text()] = item.get_translated_text()
             # 如果这个文本没有翻译或者正在翻译
-            # elif item.translation_status == CacheItem.STATUS.UNTRANSLATED:
-            #     output_dict[item.source_text] = item.translated_text
+            # elif any(item.get_translation_status() == status for status in self.NOT_TRANSLATED_STATUS):
+            #     output_dict[item.get_source_text()] = item.get_source_text()
         json_content = json.dumps(output_dict, ensure_ascii=False, indent=4)
         translation_file_path.write_text(json_content, encoding="utf-8")
         # 未保留未翻译输出
 
     @classmethod
     def get_project_type(self) -> str:
-        return ProjectType.MTOOL
+        return "Mtool"

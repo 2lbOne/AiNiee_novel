@@ -1,13 +1,11 @@
 import json
 from pathlib import Path
 
-from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import CacheItem
-from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
-    PreReadMetadata
+    text_to_cache_item
 )
 
 
@@ -19,8 +17,7 @@ class ParatranzReader(BaseSourceReader):
                 "key": "Activate",
                 "original": "カードをプレイ",
                 "translation": "出牌",
-                "context": null,
-                "stage": 1
+                "context": null
             }
         ]
         缓存数据结构示例
@@ -42,42 +39,24 @@ class ParatranzReader(BaseSourceReader):
 
     @classmethod
     def get_project_type(cls):
-        return ProjectType.PARATRANZ
+        return "Paratranz"
 
     @property
     def support_file(self):
         return "json"
 
-    def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
+    def read_source_file(self, file_path: Path) -> list[CacheItem]:
 
-        json_list = json.loads(file_path.read_text(encoding=pre_read_metadata.encoding))
+        json_list = json.loads(file_path.read_text(encoding='utf-8'))
 
         items = []
         # 提取键值对
         for json_item in json_list:
             # 根据 JSON 文件内容的数据结构，获取相应字段值
-            stage = json_item.get('stage', 0)
-            if stage == 0:  # stage 0为未翻译，详见https://paratranz.cn/docs
-                translation_status = CacheItem.STATUS.UNTRANSLATED
-            else:
-                translation_status = CacheItem.STATUS.TRANSLATED
             source_text = json_item.get('original', '')  # 获取原文，如果没有则默认为空字符串
             translated_text = json_item.get('translation', '')  # 获取翻译，如果没有则默认为空字符串
-            extra = {
-                "key": json_item.get('key', ''),  # 获取键值，如果没有则默认为空字符串
-                "context": json_item.get('context', ''),  # 获取上下文信息，如果没有则默认为空字符串
-            }
-            item = CacheItem(
-                source_text=source_text, translated_text=translated_text,
-                translation_status=translation_status,  # 更新翻译状态
-                extra=extra
-            )
+            item = text_to_cache_item(source_text, translated_text)
+            item.key = json_item.get('key', '')  # 获取键值，如果没有则默认为空字符串
+            item.context = json_item.get('context', '')  # 获取上下文信息，如果没有则默认为空字符串
             items.append(item)
-        return CacheFile(items=items)
-
-    def can_read_by_content(self, file_path: Path) -> bool:
-        # 即使不是对应编码也不影响英文的key
-        content = json.loads(file_path.read_text(encoding='utf-8', errors='ignore'))
-        if not isinstance(content, list):
-            return False
-        return all(isinstance(line, dict) and "original" in line for line in content)
+        return items

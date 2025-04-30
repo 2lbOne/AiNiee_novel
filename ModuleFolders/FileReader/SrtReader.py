@@ -1,12 +1,10 @@
 from pathlib import Path
 
-from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import CacheItem
-from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
-    PreReadMetadata
+    text_to_cache_item
 )
 
 
@@ -16,14 +14,14 @@ class SrtReader(BaseSourceReader):
 
     @classmethod
     def get_project_type(cls):
-        return ProjectType.SRT
+        return "Srt"
 
     @property
     def support_file(self):
         return "srt"
 
-    def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
-        lines = [line.strip() for line in file_path.read_text(encoding=pre_read_metadata.encoding).splitlines()]
+    def read_source_file(self, file_path: Path) -> list[CacheItem]:
+        lines = [line.lstrip("\ufeff").strip() for line in file_path.read_text(encoding="utf-8").splitlines()]
 
         current_block = None
         items = []
@@ -59,10 +57,11 @@ class SrtReader(BaseSourceReader):
         # 处理文件末尾未以空行结束的情况
         if current_block is not None:
             items.append(self._block_to_item(current_block))
-        return CacheFile(items=items)
+        return items
 
     def _block_to_item(self, block):
         source_text = "\n".join(block["text"])
-        extra = {"subtitle_number": block["number"], "subtitle_time": block["time"]}
-        item = CacheItem(source_text=source_text, extra=extra)
+        item = text_to_cache_item(source_text)
+        item.subtitle_number = block["number"]
+        item.subtitle_time = block["time"]
         return item

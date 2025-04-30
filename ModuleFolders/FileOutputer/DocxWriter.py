@@ -1,23 +1,20 @@
 from pathlib import Path
 
-from ModuleFolders.Cache.CacheFile import CacheFile
-from ModuleFolders.Cache.CacheProject import ProjectType
+from ModuleFolders.Cache.CacheItem import CacheItem
 from ModuleFolders.FileAccessor.DocxAccessor import DocxAccessor
 from ModuleFolders.FileOutputer.BaseWriter import (
     BaseTranslatedWriter,
-    OutputConfig,
-    PreWriteMetadata
+    OutputConfig
 )
 
 
 class DocxWriter(BaseTranslatedWriter):
-    def __init__(self, output_config: OutputConfig):
+    def __init__(self, output_config: OutputConfig, file_accessor: DocxAccessor):
         super().__init__(output_config)
-        self.file_accessor = DocxAccessor()
+        self.file_accessor = file_accessor
 
-    def on_write_translated(
-        self, translation_file_path: Path, cache_file: CacheFile,
-        pre_write_metadata: PreWriteMetadata,
+    def write_translated_file(
+        self, translation_file_path: Path, items: list[CacheItem],
         source_file_path: Path = None,
     ):
         temp_root = self.file_accessor.temp_path_of(source_file_path)
@@ -25,13 +22,12 @@ class DocxWriter(BaseTranslatedWriter):
         start_index = 0
         # 根据 w:t 标签找到原文
         paragraphs = content.find_all("w:t")
-        items = cache_file.items
         for match in paragraphs:
             if isinstance(match.string, str) and match.string.strip():
                 # 在翻译结果中查找是否存在原文，存在则替换并右移开始下标
                 for content_index in range(start_index, len(items)):
-                    if match.string == items[content_index].source_text:
-                        match.string = items[content_index].translated_text
+                    if match.string == items[content_index].get_source_text():
+                        match.string = items[content_index].get_translated_text()
                         start_index = content_index + 1
                         break
         self.file_accessor.write_content(
@@ -41,4 +37,4 @@ class DocxWriter(BaseTranslatedWriter):
 
     @classmethod
     def get_project_type(self):
-        return ProjectType.DOCX
+        return "Docx"

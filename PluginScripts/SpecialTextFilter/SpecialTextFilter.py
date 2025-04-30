@@ -1,8 +1,4 @@
 import re
-from typing import Iterator
-
-from ModuleFolders.Cache.CacheItem import CacheItem
-from ModuleFolders.Cache.CacheProject import CacheProject, ProjectType
 from ..PluginBase import PluginBase
 
 class SpecialTextFilter(PluginBase):
@@ -20,43 +16,50 @@ class SpecialTextFilter(PluginBase):
         pass
 
 
-    def on_event(self, event_name, config, event_data: CacheProject):
+    def on_event(self, event_name, config, event_data):
 
         # 文本预处理事件触发
         if event_name == "text_filter":
 
-            # 正对trans项目的处理
-            if ProjectType.TRANS in event_data.file_project_types:
+            items = event_data[1:]
+            project = event_data[0]
 
-                SpecialTextFilter.filter_trans_text(self, event_data.items_iter(ProjectType.TRANS))
+            # 正对trans项目的处理
+            if "trans"  in project.get("project_type", "").lower():
+
+                SpecialTextFilter.filter_trans_text(self, items)
 
 
             # 针对MD项目的处理
-            if ProjectType.MD in event_data.file_project_types:
+            if "md"  in project.get("project_type", "").lower():
 
-                SpecialTextFilter.filter_md_text(self, event_data.items_iter(ProjectType.MD))
+                SpecialTextFilter.filter_md_text(self, items)
 
     # 特殊文本过滤器
-    def filter_trans_text(self, cache_list: Iterator[CacheItem]):
+    def filter_trans_text(self,cache_list):
         for entry in cache_list:
-            tags = entry.get_extra('tags', ())
+            tags = entry.get('tags',"")
             if tags and ("red" in tags):
-                entry.translation_status = CacheItem.STATUS.EXCLUED
+                entry['translation_status'] =  7
 
-    MD_EXCLUDE_REGEXS = (
-        # 1.  ![...](http://...) and ![...](data:image...)
-        re.compile(r"^\s*!\[[^\]]*\]\([^)]*\)\s*$"),
-        # 2.  ![alt][id]
-        re.compile(r"^\s*!\[[^\]]*\]\[[^\]]+\]\s*$"),
-        # 3.  [id]: url "title" or [id]: <url> "title"
-        re.compile(r"^\s*\[[^\]]+\]:\s*<?.*>?\s*(?:(?:\".*\")|(?:'.*'))?\s*$"),
-    )
+
 
     # 特殊文本过滤器
-    def filter_md_text(self, cache_list: Iterator[CacheItem]):
+    def filter_md_text(self,cache_list):
+
+        # 1.  ![...](http://...) and ![...](data:image...)
+        REGEX_INLINE_IMAGE = re.compile(r"^\s*!\[[^\]]*\]\([^)]*\)\s*$")
+
+        # 2.  ![alt][id]
+        REGEX_REF_IMAGE_USAGE = re.compile(r"^\s*!\[[^\]]*\]\[[^\]]+\]\s*$")
+
+        # 3.  [id]: url "title" or [id]: <url> "title"
+        REGEX_REF_DEFINITION = re.compile(r"^\s*\[[^\]]+\]:\s*<?.*>?\s*(?:(?:\".*\")|(?:'.*'))?\s*$")
 
         for entry in cache_list:
-            source_text = entry.source_text
+            source_text = entry.get('source_text')
 
-            if any(regex.match(source_text) for regex in self.MD_EXCLUDE_REGEXS):
-                entry.translation_status = CacheItem.STATUS.EXCLUED
+            if REGEX_INLINE_IMAGE.match(source_text) or \
+               REGEX_REF_IMAGE_USAGE.match(source_text) or \
+               REGEX_REF_DEFINITION.match(source_text):
+                entry['translation_status'] = 7

@@ -1,13 +1,11 @@
 import re
 from pathlib import Path
 
-from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import CacheItem
-from ModuleFolders.Cache.CacheProject import ProjectType
 from ModuleFolders.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
-    PreReadMetadata
+    text_to_cache_item
 )
 
 
@@ -17,7 +15,7 @@ class VttReader(BaseSourceReader):
 
     @classmethod
     def get_project_type(cls):
-        return ProjectType.VTT
+        return "Vtt"
 
     @property
     def support_file(self):
@@ -25,18 +23,18 @@ class VttReader(BaseSourceReader):
 
     TIME_CODE_PATTERN = re.compile(r"(\d{2}:\d{2}:\d{2}\.\d{3}) --> (\d{2}:\d{2}:\d{2}\.\d{3})")
 
-    def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
-        content = file_path.read_text(encoding=pre_read_metadata.encoding).strip()
+    def read_source_file(self, file_path: Path) -> list[CacheItem]:
+        content = file_path.read_text(encoding='utf-8').strip()
 
         header, body = self._split_header_body(content)
         blocks = self._split_blocks(body)
 
         items = []
         for block in blocks:
-            item = self._parse_block(block)
+            item = self._parse_block(block, header)
             if item is not None:
                 items.append(item)
-        return CacheFile(items=items, extra={"top_text": header})
+        return items
 
     def _split_header_body(self, content):
         parts = content.split('\n\n', 1)
@@ -45,7 +43,7 @@ class VttReader(BaseSourceReader):
     def _split_blocks(self, body):
         return [b.strip() for b in re.split(r'\n{2,}', body) if b.strip()]
 
-    def _parse_block(self, block):
+    def _parse_block(self, block, header):
 
         lines = [line.strip() for line in block.split('\n') if line.strip()]
         if not lines:
@@ -78,7 +76,7 @@ class VttReader(BaseSourceReader):
         if not source_text:
             return None
 
-        return CacheItem(
-            source_text=source_text,
-            extra={"subtitle_time": full_timecode},
-        )
+        item = text_to_cache_item(source_text)
+        item.subtitle_time = full_timecode
+        item.top_text = header
+        return item
